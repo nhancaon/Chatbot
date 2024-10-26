@@ -7,11 +7,17 @@ WORKDIR /app
 # Copy the requirements.txt file into the container
 COPY requirements.txt .
 
-# Install the necessary packages
-RUN pip install --no-cache-dir -r requirements.txt
+# Create a virtual environment
+RUN python -m venv /app/venv
+
+# Activate the virtual environment and install dependencies
+RUN . /app/venv/bin/activate && pip install --no-cache-dir -r requirements.txt
 
 # Copy the entire project directory into the container
 COPY . .
+
+# Set environment variable to use the virtual environment
+ENV PATH="/app/venv/bin:$PATH"
 
 # Download NLTK resources (if required, uncomment the following lines)
 # RUN python -m nltk.downloader punkt
