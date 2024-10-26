@@ -1,30 +1,22 @@
-### Author: Riya Nakarmi ###
-### College Project ###
-
+from flask import Flask, request, jsonify
 import random
 import json
 import pickle
 import numpy as np
-
 import nltk
 from nltk.stem import WordNetLemmatizer
-from fastapi import FastAPI
-from pydantic import BaseModel
 from tensorflow.keras.models import load_model
 
-# Initialize FastAPI
-app = FastAPI()
+app = Flask(__name__)
 
 lemmatizer = WordNetLemmatizer()
 
-# Load intents and model data
-intents = json.loads(open('intents.json').read())
+# Load your intents and model data
+with open('intents.json') as f:
+    intents = json.load(f)
 words = pickle.load(open('words.pkl', 'rb'))
 classes = pickle.load(open('classes.pkl', 'rb'))
 model = load_model('chatbotmodel.h5')
-
-class Message(BaseModel):
-    text: str
 
 def clean_up_sentence(sentence):
     sentence_words = nltk.word_tokenize(sentence)
@@ -56,16 +48,19 @@ def get_response(intents_list, intents_json):
     list_of_intents = intents_json['intents']
     for i in list_of_intents:
         if i['tag'] == tag:
-            result = random.choice(i['responses'])
-            break
-    return result
+            return random.choice(i['responses'])
+    return "Sorry, I don't understand that."
 
-@app.post("/chat/")
-async def chat(message: Message):
-    ints = predict_class(message.text)
+@app.route("/chat/", methods=["POST"])
+def chat():
+    data = request.get_json()
+    message_text = data.get("text")
+    if not message_text:
+        return jsonify({"error": "No message text provided"}), 400
+
+    ints = predict_class(message_text)
     res = get_response(ints, intents)
-    return {"response": res}
+    return jsonify({"response": res})
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    app.run(debug=True)  # Changed to port 8040
